@@ -2406,7 +2406,7 @@ async def forensic_investigation_cycle(active_investigations=None):
         
         # ⏳ [ الإضافة الجديدة ] التوقف المؤقت لمدة ساعة (3600 ثانية) قبل بدء الجولة القادمة
         logging.info("⏳ [المحقق كونان] في فترة استراحة. الجولة القادمة ستبدأ بعد ساعة من الآن...")
-        await asyncio.sleep(3600)
+        await asyncio.sleep(60)
         
 # 1. 🟢 ضع هذا الكلاس قبل "نظام الإنعاش الأبدي" (في منطقة عامة خارج الدوال)
 class TelegramLoggerHandler(logging.Handler):
