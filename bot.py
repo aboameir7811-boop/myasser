@@ -2333,11 +2333,15 @@ import time
 import asyncio
 import aiohttp
 import logging
-
-async def forensic_investigation_cycle(active_investigations):
+# أضفنا =None لجعل المتغير اختيارياً وليس إجبارياً
+async def forensic_investigation_cycle(active_investigations=None):
     """
     🕵️‍♂️ دورة المحقق الجنائي: ترصد الانفجارات والانهيارات (طلقة واحدة) وتتكرر كل ساعة تلقائياً.
     """
+    # إذا لم يتم تمرير قاموس من الخارج، قم بإنشاء واحد جديد هنا
+    if active_investigations is None:
+        active_investigations = {}
+        
     # إضافة حلقة التكرار اللانهائية لتعمل الدالة بشكل مستمر
     while True:
         logging.info("🕵️‍♂️ [المحقق كونان] بدء جولة التفتيش الجنائي (العقود الآجلة) - جولة جديدة...")
