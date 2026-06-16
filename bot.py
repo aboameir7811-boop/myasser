@@ -34,8 +34,8 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from supabase import create_client, Client
 
 # --- [ 1. إعدادات الهوية والاتصال ] ---
-ADMIN_ID = 8969847934
-OWNER_USERNAME = "@Ya_74"
+ADMIN_ID = 8806781380
+OWNER_USERNAME = ""
 
 # سحب التوكينات من Render (لن يعمل البوت بدونها في الإعدادات)
 API_TOKEN = os.getenv('BOT_TOKEN')
@@ -1921,7 +1921,7 @@ async def run_forensic_autopsy(symbol, change_percent, explosion_time_ms):
 
         # 🛡️ فلتر الأمان: التأكد من أن العملة ضمن نطاق التحقيق المطلوب
         # 💡 تم التعديل إلى 60 للصعود، و -70 للهبوط (بالسالب)
-        if change_percent >= 60:
+        if change_percent >= 30:
             event_type = "PUMP"
         elif change_percent <= -70:
             event_type = "DUMP"
@@ -2391,7 +2391,7 @@ async def forensic_investigation_cycle(active_investigations=None):
                             close_time_ms = int(coin.get('closeTime', current_time_ms))
                             
                             # هل هي جريمة جديدة؟ (+60% صعود أو -70% هبوط)
-                            if vol > 50000 and (change >= 60 or change <= -70):
+                            if vol > 50000 and (change >= 30 or change <= -70):
                                 # إذا لم نقم بتشريحها من قبل في هذا اليوم
                                 if symbol not in active_investigations:
                                     # نسجلها في القائمة لمنع تكرار التحليل لها اليوم
