@@ -1891,7 +1891,7 @@ async def async_manual_upsert1(table_name, records, retry_count=0, max_retries=3
         logging.error(f"⚠️ خطأ تقني أثناء محاولة الرفع إلى {table_name}: {str(e)}")
         return False
 
-async def fetch_klines1(session, symbol, interval, limit=500): # تم رفع الحد إلى 300 لحساب EMA 200 بأمان
+async def fetch_klines1(session, symbol, interval, limit=350): # تم رفع الحد إلى 300 لحساب EMA 200 بأمان
     url = f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
     try:
         async with session.get(url, timeout=10) as res:
@@ -2412,7 +2412,7 @@ async def forensic_investigation_cycle(active_investigations=None):
         
         # ⏳ [ الإضافة الجديدة ] التوقف المؤقت لمدة ساعة (3600 ثانية) قبل بدء الجولة القادمة
         logging.info("⏳ [المحقق كونان] في فترة استراحة. الجولة القادمة ستبدأ بعد ساعة من الآن...")
-        await asyncio.sleep(60)
+        await asyncio.sleep(3600)
        
 # 1. 🟢 ضع هذا الكلاس قبل "نظام الإنعاش الأبدي" (في منطقة عامة خارج الدوال)
 # 1. 🟢 كلاس اللوج المطور (آمن للاستخدام مع الخيوط المتعددة - Threadsafe)
