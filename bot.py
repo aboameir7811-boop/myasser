@@ -42,7 +42,8 @@ API_TOKEN = os.getenv('BOT_TOKEN')
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 GROUP_ID = os.getenv('GROUP_ID')
-
+# قناة تقارير الذكاء الاصطناعي (يجب إضافتها في متغيرات Render)
+AI_CHANNEL_ID = os.getenv('AI_CHANNEL_ID')
 # ==========================================
 # 🌟 جلب مفاتيح الذكاء الاصطناعي بأمان من البيئة
 # ==========================================
@@ -55,12 +56,9 @@ AI_HEARTS = [
 ]
 
 # التحقق ثانياً
-if not API_TOKEN or not GROUP_ID:
+# 2. التحقق ثانياً
+if not API_TOKEN or not GROUP_ID or not AI_CHANNEL_ID:
     logging.error("❌ خطأ: المتغيرات المشفرة مفقودة في إعدادات Render!")
-    
-# تحقق إضافي للتأكد من وجود مفتاح ذكاء اصطناعي واحد على الأقل ليعمل البوت
-if not any(heart['key'] for heart in AI_HEARTS):
-    logging.error("❌ خطأ: لم يتم العثور على أي مفتاح للذكاء الاصطناعي في إعدادات Render!")
 
 # تعريف المحركات
 bot = Bot(token=API_TOKEN, parse_mode="HTML")
@@ -147,18 +145,18 @@ async def ask_gemini(prompt):
                 
     return "⚠️ عذراً أيها القائد، جميع الأنظمة والترسانة الاحتياطية تحت ضغط عالمي هائل الآن."
 
-
 async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
     """
     🧠 خوارزمية الاستلام الفني: تقوم بفتح ملف القضية (report_id)، 
-    قراءة التقاطعات لكل فريم، وتحديث هيكل الاتجاه في قاعدة البيانات.
+    قراءة جميع الأدلة الرقمية (المتوسطات، إيشيموكو، سوبر تريند، كيلتنر، إلخ)،
+    وتحديث هيكل الاتجاه في قاعدة البيانات وإرساله للقناة المخصصة.
     """
     print(f"🕵️‍♂️ [المختبر الجنائي] جاري سحب بيانات {symbol} للتحليل الاصطناعي العميق...")
     
     try:
-        # 1. جلب بيانات المتوسطات والبولينجر من مسرح الجريمة (Supabase)
+        # 1. جلب بيانات جميع المؤشرات من مسرح الجريمة (Supabase)
         endpoint = f"moving_averages_and_bands?select=*&report_id=eq.{report_id}"
-        records = await fetch_supabase(endpoint)
+        records = await fetch_supabase(endpoint) # نفترض أن هذه الدالة موجودة لديك
         
         if not records or (isinstance(records, dict) and "error" in records):
             print(f"❌ [المختبر الجنائي] الملف {report_id} غير موجود أو فارغ!")
@@ -166,30 +164,34 @@ async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
 
         evidence = records[0]
 
-        # 2. هندسة البرومبت الصارم (نجبره على إرجاع JSON ليتم حقن كل فريم في عموده المخصص)
+        # 2. هندسة البرومبت الصارم للذكاء الاصطناعي
         prompt = f"""
-        أنت خبير تحليل فني استخباراتي. تم استدعاؤك لتحليل هيكل الاتجاه لعملة {symbol} بناءً على هذه البيانات الرياضية:
+        أنت محقق جنائي في التحليل الفني الاستخباراتي. تم استدعاؤك لتحليل هيكل الاتجاه لعملة {symbol} بناءً على مسرح الجريمة الرياضي التالي:
         {json.dumps(evidence, default=str)}
 
         المطلوب منك:
-        اكتب تقريراً قصيراً ومباشراً لكل فريم زمني (ساعة، ساعتين، 4 ساعات، يومي) يشرح مواقع الخطوط وتقاطعاتها بدقة (مثال: السعر اخترق البولينجر العلوي، والمتوسط 20 يتقاطع إيجاباً مع 50).
+        اكتب تقريراً دقيقاً لكل فريم زمني (ساعة، ساعتين، 4 ساعات، يومي) بناءً على *جميع* المؤشرات المتاحة في البيانات أعلاه.
+        يجب أن يشمل تحليلك:
+        - مواقع السعر وتقاطعات المتوسطات المتحركة (EMA).
+        - حالة الانفجار أو الضغط في البولينجر باندز (BB) وقنوات كيلتنر (KC).
+        - التموضع بالنسبة لسحابة إيشيموكو (Ichimoku Cloud)، السوبر تريند (Supertrend)، والبارابوليك سار (Parabolic SAR).
 
         ⚠️ قواعد صارمة جداً:
-        1. يجب أن يكون ردك بصيغة JSON حقيقية وصالحة للبرمجة فقط.
-        2. يُمنع منعاً باتاً إضافة أي نصوص خارج الـ JSON.
+        1. يجب أن يكون ردك بصيغة JSON حقيقية وصالحة للبرمجة فقط، بدون أي نصوص تمهيدية.
+        2. يُمنع منعاً باتاً إضافة أي نصوص أو علامات Markdown خارج الـ JSON.
         3. استخدم الهيكل التالي حرفياً:
         {{
-            "trend_structure_1h": "تحليل فريم الساعة هنا...",
-            "trend_structure_2h": "تحليل فريم الساعتين هنا...",
-            "trend_structure_4h": "تحليل فريم 4 ساعات هنا...",
-            "trend_structure_1d": "تحليل الفريم اليومي هنا..."
+            "trend_structure_1h": "تحليل فريم الساعة بناءً على المؤشرات هنا...",
+            "trend_structure_2h": "تحليل فريم الساعتين بناءً على المؤشرات هنا...",
+            "trend_structure_4h": "تحليل فريم 4 ساعات بناءً على المؤشرات هنا...",
+            "trend_structure_1d": "تحليل الفريم اليومي بناءً على المؤشرات هنا..."
         }}
         """
 
         # 3. إرسال البيانات للعقل المدبر (Gemini)
-        ai_response = await ask_gemini(prompt)
+        ai_response = await ask_gemini(prompt) # نفترض أن هذه الدالة موجودة لديك
         
-        # 4. تنظيف النص (طريقة مبسطة وآمنة جداً لـ Termux بدون Regex معقد)
+        # 4. تنظيف النص لتفادي أخطاء Termux
         clean_json_str = ai_response.replace("```json", "").replace("```", "").strip()
         
         try:
@@ -219,12 +221,35 @@ async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
             async with session.patch(url, json=update_payload, headers=headers) as resp:
                 if resp.status in [200, 204]:
                     print(f"✅ [المختبر الجنائي] تم تفكيك شفرة هيكل الاتجاه بنجاح للعملة: {symbol}")
+                    
+                    # --- [ 7. إرسال التقرير إلى قناة تلجرام الخاصة بالذكاء الاصطناعي ] ---
+                    telegram_report = (
+                        f"🕵️‍♂️ <b>التقرير الجنائي الفني | #{symbol}</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━\n\n"
+                        f"⏱ <b>[ 1H - فريم الساعة ]:</b>\n"
+                        f"{update_payload['trend_structure_1h']}\n\n"
+                        f"⏱ <b>[ 2H - فريم الساعتين ]:</b>\n"
+                        f"{update_payload['trend_structure_2h']}\n\n"
+                        f"⏱ <b>[ 4H - فريم 4 ساعات ]:</b>\n"
+                        f"{update_payload['trend_structure_4h']}\n\n"
+                        f"📅 <b>[ 1D - الفريم اليومي ]:</b>\n"
+                        f"{update_payload['trend_structure_1d']}\n\n"
+                        f"🔗 <b>معرف القضية:</b> <code>{report_id}</code>"
+                    )
+                    
+                    try:
+                        await bot.send_message(chat_id=AI_CHANNEL_ID, text=telegram_report)
+                        print(f"📨 [تلجرام] تم إرسال ملف القضية لعملة {symbol} إلى القناة بنجاح.")
+                    except Exception as tg_err:
+                        print(f"⚠️ [تلجرام] فشل إرسال التقرير للقناة: {tg_err}")
+
                 else:
                     error_text = await resp.text()
                     print(f"⚠️ [المختبر الجنائي] فشل تحديث سوبابيس: الكود {resp.status} - {error_text}")
 
     except Exception as e:
         print(f"❌ [المختبر الجنائي] انهيار في غرفة التحليل لعملة {symbol}: {str(e)}")
+        
 
 # ==========================================
 class BankTransfer(StatesGroup):
