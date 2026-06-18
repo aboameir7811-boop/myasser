@@ -1935,7 +1935,8 @@ async def safe_ai_handover(report_id, symbol):
         logging.info(f"🧠 [الذكاء الاصطناعي] أتم تحليل {symbol} بنجاح.")
     except Exception as e:
         logging.error(f"❌ [انهيار الذكاء الاصطناعي] فشل تحليل {symbol}: {e}")
-        
+
+
 async def run_forensic_autopsy(symbol, change_percent, explosion_time_ms):
     """
     🕵️‍♂️ وحدة التحقيق الجنائي المتقدمة (المحقق كونان v3.1 - إصدار أثير للتحليل العميق)
@@ -1947,10 +1948,10 @@ async def run_forensic_autopsy(symbol, change_percent, explosion_time_ms):
         # --------------------------------------------------
 
         # 🛡️ فلتر الأمان: التأكد من أن العملة ضمن نطاق التحقيق المطلوب
-        # 💡 تم التعديل إلى 60 للصعود، و -70 للهبوط (بالسالب)
+        # ✅ تم التعديل إلى 30 للصعود، و -30 للهبوط ليتوافق مع الدورة الخارجية
         if change_percent >= 30:
             event_type = "PUMP"
-        elif change_percent <= -70:
+        elif change_percent <= -30:
             event_type = "DUMP"
         else:
             return  # تجاهل إذا لم تكن مطابقة للشروط
@@ -1972,29 +1973,28 @@ async def run_forensic_autopsy(symbol, change_percent, explosion_time_ms):
             print(f"⚠️ [المحقق كونان] الأدلة غير كافية لعملة {symbol}. إغلاق الملف.")
             return
 
-        # ... (باقي كود التحليل الخاص بك) ...
         # ==========================================
         # 🕵️‍♂️ 1. تحديد "ساعة الصفر" من فريم الساعة (1H)
         # ==========================================
+        
         df_1h = pd.DataFrame(klines_data['1h'], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'qav', 'num_trades', 'taker_base_vol', 'taker_quote_vol', 'ignore'])
         for col in ['open', 'high', 'low', 'close', 'volume', 'taker_base_vol', 'timestamp']:
             df_1h[col] = df_1h[col].astype(float)
             
         df_1h['body_size'] = abs(df_1h['close'] - df_1h['open']) / df_1h['open'] * 100
-        point_zero_idx = df_1h['body_size'].idxmax()
+        
+        # 👈 [ التعديل الجوهري المستقر ]: توجيه المحقق لفتح الملف لآخر شمعة مباشرة
+        point_zero_idx = len(df_1h) - 1 
         
         if point_zero_idx < 25:
             print(f"⚠️ [المحقق كونان] الحدث حصل مبكراً جداً ولا يوجد تاريخ كافي لما قبل الكارثة. {symbol}")
             return
 
         point_zero_timestamp = int(df_1h.iloc[point_zero_idx]['timestamp'])
-        current_timestamp = int(df_1h.iloc[-1]['timestamp'])
-
+        current_timestamp = int(df_1h.iloc[-1]['timestamp'])        
         # ==========================================
         # 🦈 [ إضافة بصمات الحيتان والأموال الذكية ]
-        # ==========================================
-        
-        # 1. حساب صافي سيولة الحيتان (Whale Net Flow)
+        # ==========================================       
         tbv_before = float(df_1h.iloc[point_zero_idx - 1]['taker_base_vol']) # شراء السوق
         total_vol_before = float(df_1h.iloc[point_zero_idx - 1]['volume'])
         tsv_before = total_vol_before - tbv_before # بيع السوق
@@ -2013,7 +2013,6 @@ async def run_forensic_autopsy(symbol, change_percent, explosion_time_ms):
                 fvg_size_pct = ((c3_low - c1_high) / c1_high) * 100
             elif c1_low > c3_high: # Bearish FVG
                 fvg_size_pct = ((c1_low - c3_high) / c3_high) * 100
-
         # ==========================================
         # 🕯️ 2. دالة كشف أنماط الشموع ما قبل الكارثة
         # ==========================================
@@ -2148,9 +2147,6 @@ async def run_forensic_autopsy(symbol, change_percent, explosion_time_ms):
                 # --- بصمات النماذج ---
                 f"{tf_name}_pattern_name": pattern_data.get("name", "NONE"),
                 f"{tf_name}_pattern_class": pattern_data.get("class", "NONE"),
-                f"{tf_name}_pattern_breakout": float(pattern_data.get("breakout", 0.0)),
-                f"{tf_name}_pattern_target": float(pattern_data.get("target", 0.0)),
-                f"{tf_name}_pattern_sl": float(pattern_data.get("sl", 0.0)),
 
                 f"mfi_{tf_name}": mfi_val,
                 f"cmf_{tf_name}": cmf_val,
@@ -2374,7 +2370,7 @@ async def forensic_investigation_cycle(active_investigations=None):
         
     # إضافة حلقة التكرار اللانهائية لتعمل الدالة بشكل مستمر
     while True:
-        logging.info("🕵️‍♂️ [المحقق كونان] بدء جولة التفتيش الجنائي (العقود الآجلة) - جولة جديدة...")
+        logging.info("🕵️‍♂️ [المحقق كونان] بدء جولة التفتيش الجنائي - جولة جديدة...")
         
         # تحويل الوقت الحالي إلى ملي ثانية (Millisecond)
         current_time_ms = int(time.time() * 1000)
@@ -2389,7 +2385,7 @@ async def forensic_investigation_cycle(active_investigations=None):
 
         try:
             async with aiohttp.ClientSession() as session:
-                # استخدام رابط العقود الآجلة الخاص بـ Binance
+                # ✅ استخدام الرابط الخاص بك (السوق الفوري Spot) بدون تغيير
                 async with session.get("https://data-api.binance.vision/api/v3/ticker/24hr", timeout=10) as res:
                     if res.status == 200:
                         tickers = await res.json()
@@ -2414,9 +2410,10 @@ async def forensic_investigation_cycle(active_investigations=None):
                             # الحصول على وقت الانفجار
                             close_time_ms = int(coin.get('closeTime', current_time_ms))
                             
-                            # هل هي جريمة جديدة؟ (+60% صعود أو -70% هبوط)
-                            if vol > 50000 and (change >= 30 or change <= -70):
-                                # إذا لم نقم بتشريحها من قبل في هذا اليوم
+                            # ✅ التحقق من الانفجار (+30% صعود) أو الانهيار (-30% هبوط)
+                            if vol > 50000 and (change >= 30 or change <= -30):
+                                
+                                # ✅ [المطلوب]: الاستعلام أولاً لمنع تكرار نفس العملة قبل استدعاء الدالة
                                 if symbol not in active_investigations:
                                     # نسجلها في القائمة لمنع تكرار التحليل لها اليوم
                                     active_investigations[symbol] = close_time_ms
@@ -2434,10 +2431,10 @@ async def forensic_investigation_cycle(active_investigations=None):
             
         print(f"🏁 [المحقق] أنهى جولته. ذاكرة منع التكرار تحتوي حالياً على {len(active_investigations)} عملة.")
         
-        # ⏳ [ الإضافة الجديدة ] التوقف المؤقت لمدة ساعة (3600 ثانية) قبل بدء الجولة القادمة
+        # ⏳ التوقف المؤقت لمدة ساعة (3600 ثانية) قبل بدء الجولة القادمة
         logging.info("⏳ [المحقق كونان] في فترة استراحة. الجولة القادمة ستبدأ بعد ساعة من الآن...")
         await asyncio.sleep(3600)
-       
+
 # 1. 🟢 ضع هذا الكلاس قبل "نظام الإنعاش الأبدي" (في منطقة عامة خارج الدوال)
 class TelegramLoggerHandler(logging.Handler):
     def __init__(self, bot, chat_id, loop):
