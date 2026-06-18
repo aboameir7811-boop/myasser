@@ -176,7 +176,7 @@ async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
         1. استخراج قيم جميع المؤشرات وترتيبها هرمياً باستخدام الشروط الرياضية (>, <, =).
         2. يُمنع منعاً باتاً تضمين "السعر" (Price) أو ذكره في الترتيب. رتب المؤشرات مع بعضها البعض فقط بناءً على قيمها.
         3. اجمع جميع المؤشرات في أسطر رياضية واضحة لكل فريم زمني من الأكبر قيمة إلى الأصغر قيمة. (مثال: EMA20 > SuperTrend > EMA50 > Parabolic_SAR > EMA100 > EMA200). 
-        4. إذا كانت بيانات الفريم فارغة (null) اكتب Null.
+        4. إذا كانت بيانات الفريم فارغة لا تذكرها .
 
         ⚠️ قواعد صارمة جداً:
         1. يجب أن يكون ردك بصيغة JSON حقيقية وصالحة للبرمجة فقط.
@@ -226,7 +226,7 @@ async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
                     
                     # --- [ 7. إرسال التقرير إلى قناة تلجرام الخاصة بالذكاء الاصطناعي ] ---
                     telegram_report = (
-                        f"🕵️‍♂️ <b>التقرير الجنائي الفني | #{symbol}</b>\n"
+                        f"🕵️‍♂️ <b>التقرير التحليل الفني | #{symbol}</b>\n"
                         f"━━━━━━━━━━━━━━━━━━\n\n"
                         f"⏱ <b>[ 1H ]:</b>\n"
                         f"{update_payload['trend_structure_1h']}\n\n"
@@ -2436,7 +2436,7 @@ async def forensic_investigation_cycle(active_investigations=None):
         
         # ⏳ [ الإضافة الجديدة ] التوقف المؤقت لمدة ساعة (3600 ثانية) قبل بدء الجولة القادمة
         logging.info("⏳ [المحقق كونان] في فترة استراحة. الجولة القادمة ستبدأ بعد ساعة من الآن...")
-        await asyncio.sleep(600)
+        await asyncio.sleep(3600)
        
 # 1. 🟢 ضع هذا الكلاس قبل "نظام الإنعاش الأبدي" (في منطقة عامة خارج الدوال)
 class TelegramLoggerHandler(logging.Handler):
