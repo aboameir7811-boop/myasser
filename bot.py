@@ -164,6 +164,113 @@ async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
 
         evidence = records[0]
 
+        # 2. هندسة البرومبت الصارم للذكاء الاصطناعي (ترتيب المؤشرات فقط بدون السعر)
+        prompt = f"""
+        أنت مجرد "أداة استخراج برمجية" (Data Extractor).
+        يُمنع منعاً باتاً الشرح، التأليف، أو إضافة أي نصوص وصفية، مقدمات أو خاتمات.
+
+        بيانات السجل:
+        {json.dumps(evidence, default=str)}
+
+        المطلوب منك:
+        1. استخراج قيم جميع المؤشرات وترتيبها هرمياً باستخدام الشروط الرياضية (>, <, =).
+        2. يُمنع منعاً باتاً تضمين "السعر" (Price) أو ذكره في الترتيب. رتب المؤشرات مع بعضها البعض فقط بناءً على قيمها.
+        3. اجمع جميع المؤشرات في أسطر رياضية واضحة لكل فريم زمني من الأكبر قيمة إلى الأصغر قيمة. (مثال: EMA20 > SuperTrend > EMA50 > Parabolic_SAR > EMA100 > EMA200). 
+        4. إذا كانت بيانات الفريم فارغة (null) اكتب Null.
+
+        ⚠️ قواعد صارمة جداً:
+        1. يجب أن يكون ردك بصيغة JSON حقيقية وصالحة للبرمجة فقط.
+        2. يُمنع منعاً باتاً إضافة أي نصوص أو علامات Markdown خارج الـ JSON.
+        3. ترتيب البيانات حرفياً موقع كل مؤشر :
+        {{
+            "trend_structure_1h": "...",
+            "trend_structure_2h": "...",
+            "trend_structure_4h": "...",
+            "trend_structure_1d": "..."
+        }}
+        """
+
+        # 3. إرسال البيانات للعقل المدبر (Gemini)
+        ai_response = await ask_gemini(prompt) # نفترض أن هذه الدالة موجودة لديك
+        
+        # 4. تنظيف النص لتفادي أخطاء Termux
+        clean_json_str = ai_response.replace("```json", "").replace("```", "").strip()
+        
+        try:
+            analysis_data = json.loads(clean_json_str)
+        except json.JSONDecodeError:
+            print(f"❌ [المختبر الجنائي] فشل قراءة رد الذكاء الاصطناعي كـ JSON لعملة {symbol}. الرد كان:\n{clean_json_str}")
+            return
+
+        # 5. تجهيز حمولة التحديث (Payload)
+        update_payload = {
+            "trend_structure_1h": analysis_data.get("trend_structure_1h", "Null"),
+            "trend_structure_2h": analysis_data.get("trend_structure_2h", "Null"),
+            "trend_structure_4h": analysis_data.get("trend_structure_4h", "Null"),
+            "trend_structure_1d": analysis_data.get("trend_structure_1d", "Null")
+        }
+
+        # 6. حقن البيانات الجديدة (PATCH) في قاعدة سوبابيس
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+        url = f"{SUPABASE_URL}/rest/v1/moving_averages_and_bands?report_id=eq.{report_id}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(url, json=update_payload, headers=headers) as resp:
+                if resp.status in [200, 204]:
+                    print(f"✅ [المختبر الجنائي] تم تفكيك شفرة هيكل الاتجاه بنجاح للعملة: {symbol}")
+                    
+                    # --- [ 7. إرسال التقرير إلى قناة تلجرام الخاصة بالذكاء الاصطناعي ] ---
+                    telegram_report = (
+                        f"🕵️‍♂️ <b>التقرير الجنائي الفني | #{symbol}</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━\n\n"
+                        f"⏱ <b>[ 1H ]:</b>\n"
+                        f"{update_payload['trend_structure_1h']}\n\n"
+                        f"⏱ <b>[ 2H ]:</b>\n"
+                        f"{update_payload['trend_structure_2h']}\n\n"
+                        f"⏱ <b>[ 4H ]:</b>\n"
+                        f"{update_payload['trend_structure_4h']}\n\n"
+                        f"📅 <b>[ 1D ]:</b>\n"
+                        f"{update_payload['trend_structure_1d']}\n\n"
+                        f"🔗 <b>معرف القضية:</b> <code>{report_id}</code>"
+                    )
+                    
+                    try:
+                        await bot.send_message(chat_id=AI_CHANNEL_ID, text=telegram_report)
+                        print(f"📨 [تلجرام] تم إرسال ملف القضية لعملة {symbol} إلى القناة بنجاح.")
+                    except Exception as tg_err:
+                        print(f"⚠️ [تلجرام] فشل إرسال التقرير للقناة: {tg_err}")
+
+                else:
+                    error_text = await resp.text()
+                    print(f"⚠️ [المختبر الجنائي] فشل تحديث سوبابيس: الكود {resp.status} - {error_text}")
+
+    except Exception as e:
+        print(f"❌ [المختبر الجنائي] انهيار في غرفة التحليل لعملة {symbol}: {str(e)}")
+        
+async def analyze_trend_structure_with_ai(report_id: str, symbol: str):
+    """
+    🧠 خوارزمية الاستلام الفني: تقوم بفتح ملف القضية (report_id)، 
+    قراءة جميع الأدلة الرقمية (المتوسطات، إيشيموكو، سوبر تريند، كيلتنر، إلخ)،
+    وتحديث هيكل الاتجاه في قاعدة البيانات وإرساله للقناة المخصصة.
+    """
+    print(f"🕵️‍♂️ [المختبر الجنائي] جاري سحب بيانات {symbol} للتحليل الاصطناعي العميق...")
+    
+    try:
+        # 1. جلب بيانات جميع المؤشرات من مسرح الجريمة (Supabase)
+        endpoint = f"moving_averages_and_bands?select=*&report_id=eq.{report_id}"
+        records = await fetch_supabase(endpoint) # نفترض أن هذه الدالة موجودة لديك
+        
+        if not records or (isinstance(records, dict) and "error" in records):
+            print(f"❌ [المختبر الجنائي] الملف {report_id} غير موجود أو فارغ!")
+            return
+
+        evidence = records[0]
+
         # 2. هندسة البرومبت الصارم للذكاء الاصطناعي
         prompt = f"""
         أنت محقق جنائي في التحليل الفني الاستخباراتي. تم استدعاؤك لتحليل هيكل الاتجاه لعملة {symbol} بناءً على مسرح الجريمة الرياضي التالي:
